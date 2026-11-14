@@ -1,6 +1,6 @@
-"""SQLite connection and schema management skeleton."""
-
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 SCHEMA_SQL = """
@@ -29,15 +29,18 @@ CREATE TABLE IF NOT EXISTS budgets (
 """
 
 
-def get_connection(db_path: Path) -> sqlite3.Connection:
-    """Create and return a SQLite connection with foreign keys enabled."""
+@contextmanager
+def get_connection(db_path: Path) -> Iterator[sqlite3.Connection]:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
-    return conn
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 
 def init_db(db_path: Path) -> None:
-    """Initialize database schema."""
     with get_connection(db_path) as conn:
         conn.executescript(SCHEMA_SQL)

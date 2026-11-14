@@ -1,5 +1,3 @@
-"""Smoke tests for the services layer skeleton."""
-
 from spendwise.services.alert_service import AlertService
 from spendwise.services.budget_service import BudgetService
 from spendwise.services.category_service import DEFAULT_CATEGORIES, CategoryService
@@ -11,7 +9,6 @@ from spendwise.services.transaction_service import TransactionService
 
 
 def test_service_classes_instantiate() -> None:
-    """Verify service skeleton classes can be instantiated."""
     assert ProfileService() is not None
     assert CategoryService() is not None
     assert TransactionService() is not None

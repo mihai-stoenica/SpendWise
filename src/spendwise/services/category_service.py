@@ -1,5 +1,3 @@
-"""Category management service (default and custom categories)."""
-
 DEFAULT_CATEGORIES: tuple[str, ...] = (
     "Groceries",
     "Rent",
@@ -15,6 +13,4 @@ DEFAULT_CATEGORIES: tuple[str, ...] = (
 
 
 class CategoryService:
-    """Service for managing transaction categories."""
-
     pass

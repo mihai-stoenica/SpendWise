@@ -1,5 +1,3 @@
-"""Domain data models for SpendWise."""
-
 from dataclasses import dataclass
 from typing import Literal
 
@@ -8,17 +6,17 @@ TransactionType = Literal["income", "expense"]
 
 @dataclass(frozen=True)
 class Profile:
-    """User profile metadata."""
-
     name: str
     password_hash: str | None = None
     theme: str = "system"
 
+    @property
+    def has_password(self) -> bool:
+        return bool(self.password_hash)
+
 
 @dataclass(frozen=True)
 class Category:
-    """Transaction category."""
-
     id: int | None
     name: str
     is_default: bool = False
@@ -26,8 +24,6 @@ class Category:
 
 @dataclass(frozen=True)
 class Transaction:
-    """Income or expense entry (amount in integer minor units)."""
-
     id: int | None
     date: str
     amount: int
@@ -40,8 +36,6 @@ class Transaction:
 
 @dataclass(frozen=True)
 class Budget:
-    """Monthly spending budget for a category (amount in integer minor units)."""
-
     id: int | None
     category_id: int
     monthly_amount: int
@@ -49,8 +43,6 @@ class Budget:
 
 @dataclass(frozen=True)
 class BudgetAlert:
-    """Budget threshold alert (80% or 100%)."""
-
     category_id: int
     category_name: str
     level: Literal[80, 100]
@@ -60,8 +52,6 @@ class BudgetAlert:
 
 @dataclass(frozen=True)
 class ForecastResult:
-    """Next-month spending forecast result."""
-
     total_forecast: int
     per_category: dict[str, int]
     low_confidence: bool

@@ -1,9 +1,9 @@
-"""Application entry point for SpendWise."""
+from spendwise.ui.app import SpendWiseApp
 
 
 def main() -> None:
-    """Launch the SpendWise desktop application."""
-    pass
+    app = SpendWiseApp()
+    app.run()
 
 
 if __name__ == "__main__":
