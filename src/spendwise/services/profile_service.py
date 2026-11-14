@@ -83,7 +83,7 @@ class ProfileService:
             if entry.is_dir() and json_path.is_file():
                 try:
                     profiles.append(self._load_profile_metadata(json_path))
-                except (json.JSONDecodeError, KeyError, OSError):
+                except json.JSONDecodeError, KeyError, OSError:
                     continue
         return profiles
 
