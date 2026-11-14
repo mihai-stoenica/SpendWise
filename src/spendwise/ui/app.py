@@ -1,7 +1,11 @@
 import customtkinter as ctk
 
 from spendwise.models import Profile
+from spendwise.paths import get_profile_db_path
+from spendwise.repositories.category_repo import CategoryRepository
+from spendwise.services.category_service import CategoryService
 from spendwise.services.profile_service import ProfileService
+from spendwise.ui.category_view import CategoryView
 from spendwise.ui.profile_view import ProfileView
 
 
@@ -11,8 +15,8 @@ class SpendWiseApp(ctk.CTk):
         self._profile_service = profile_service or ProfileService()
 
         self.title("SpendWise")
-        self.geometry("760x540")
-        self.minsize(640, 480)
+        self.geometry("820x580")
+        self.minsize(680, 500)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
@@ -71,17 +75,21 @@ class SpendWiseApp(ctk.CTk):
             command=self._handle_switch_profile,
         ).grid(row=0, column=2, padx=(8, 16), pady=12)
 
-        body = ctk.CTkFrame(shell)
-        body.grid(row=1, column=0, padx=16, pady=(8, 16), sticky="nsew")
-        body.grid_rowconfigure(0, weight=1)
-        body.grid_columnconfigure(0, weight=1)
+        tabs = ctk.CTkTabview(shell)
+        tabs.grid(row=1, column=0, padx=16, pady=(4, 16), sticky="nsew")
+        tabs.add("Categories")
 
-        ctk.CTkLabel(
-            body,
-            text=f"Welcome to SpendWise, {profile.name}!\n\n"
-            "Your local profile database and folders are ready.",
-            font=ctk.CTkFont(size=15),
-        ).grid(row=0, column=0, padx=24, pady=24)
+        categories_tab = tabs.tab("Categories")
+        categories_tab.grid_rowconfigure(0, weight=1)
+        categories_tab.grid_columnconfigure(0, weight=1)
+
+        db_path = get_profile_db_path(
+            profile.name,
+            base_dir=self._profile_service.profiles_dir.parent,
+        )
+        category_service = CategoryService(CategoryRepository(db_path))
+        category_view = CategoryView(categories_tab, category_service=category_service)
+        category_view.grid(row=0, column=0, sticky="nsew")
 
         self._active_frame = shell
 
