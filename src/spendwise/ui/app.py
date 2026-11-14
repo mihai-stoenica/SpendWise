@@ -3,10 +3,13 @@ import customtkinter as ctk
 from spendwise.models import Profile
 from spendwise.paths import get_profile_db_path
 from spendwise.repositories.category_repo import CategoryRepository
+from spendwise.repositories.transaction_repo import TransactionRepository
 from spendwise.services.category_service import CategoryService
 from spendwise.services.profile_service import ProfileService
+from spendwise.services.transaction_service import TransactionService
 from spendwise.ui.category_view import CategoryView
 from spendwise.ui.profile_view import ProfileView
+from spendwise.ui.transaction_view import TransactionView
 
 
 class SpendWiseApp(ctk.CTk):
@@ -15,8 +18,8 @@ class SpendWiseApp(ctk.CTk):
         self._profile_service = profile_service or ProfileService()
 
         self.title("SpendWise")
-        self.geometry("820x580")
-        self.minsize(680, 500)
+        self.geometry("860x640")
+        self.minsize(720, 540)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
@@ -77,7 +80,12 @@ class SpendWiseApp(ctk.CTk):
 
         tabs = ctk.CTkTabview(shell)
         tabs.grid(row=1, column=0, padx=16, pady=(4, 16), sticky="nsew")
+        tabs.add("Transactions")
         tabs.add("Categories")
+
+        transactions_tab = tabs.tab("Transactions")
+        transactions_tab.grid_rowconfigure(0, weight=1)
+        transactions_tab.grid_columnconfigure(0, weight=1)
 
         categories_tab = tabs.tab("Categories")
         categories_tab.grid_rowconfigure(0, weight=1)
@@ -87,8 +95,25 @@ class SpendWiseApp(ctk.CTk):
             profile.name,
             base_dir=self._profile_service.profiles_dir.parent,
         )
-        category_service = CategoryService(CategoryRepository(db_path))
-        category_view = CategoryView(categories_tab, category_service=category_service)
+        category_repo = CategoryRepository(db_path)
+        category_service = CategoryService(category_repo)
+        transaction_service = TransactionService(
+            TransactionRepository(db_path),
+            category_repo=category_repo,
+        )
+
+        tx_view = TransactionView(
+            transactions_tab,
+            transaction_service=transaction_service,
+            category_service=category_service,
+        )
+        tx_view.grid(row=0, column=0, sticky="nsew")
+
+        category_view = CategoryView(
+            categories_tab,
+            category_service=category_service,
+            on_changed=tx_view.refresh_all,
+        )
         category_view.grid(row=0, column=0, sticky="nsew")
 
         self._active_frame = shell

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from spendwise.repositories.category_repo import CategoryRepository
+from spendwise.repositories.transaction_repo import TransactionRepository
 from spendwise.services.alert_service import AlertService
 from spendwise.services.budget_service import BudgetService
 from spendwise.services.category_service import DEFAULT_CATEGORIES, CategoryService
@@ -14,7 +15,7 @@ from spendwise.services.transaction_service import TransactionService
 def test_service_classes_instantiate(temp_db_path: Path) -> None:
     assert ProfileService() is not None
     assert CategoryService(CategoryRepository(temp_db_path)) is not None
-    assert TransactionService() is not None
+    assert TransactionService(TransactionRepository(temp_db_path)) is not None
     assert BudgetService() is not None
     assert AlertService() is not None
     assert ForecastService() is not None

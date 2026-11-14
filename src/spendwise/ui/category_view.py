@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import customtkinter as ctk
 
 from spendwise.services.category_service import CategoryService
@@ -8,9 +10,11 @@ class CategoryView(ctk.CTkFrame):
         self,
         master: ctk.CTk | ctk.CTkFrame,
         category_service: CategoryService,
+        on_changed: Callable[[], None] | None = None,
     ) -> None:
         super().__init__(master)
         self._service = category_service
+        self._on_changed = on_changed
 
         self._build_ui()
         self.refresh_categories()
@@ -86,6 +90,8 @@ class CategoryView(ctk.CTkFrame):
             self._name_entry.delete(0, "end")
             self._status_label.configure(text="")
             self.refresh_categories()
+            if self._on_changed is not None:
+                self._on_changed()
         except ValueError as exc:
             self._status_label.configure(text=str(exc))
 
@@ -94,5 +100,7 @@ class CategoryView(ctk.CTkFrame):
             self._service.delete_category(category_id)
             self._status_label.configure(text="")
             self.refresh_categories()
+            if self._on_changed is not None:
+                self._on_changed()
         except ValueError as exc:
             self._status_label.configure(text=str(exc))
