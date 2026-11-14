@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import date as dt_date
 
 import customtkinter as ctk
@@ -14,10 +15,12 @@ class TransactionView(ctk.CTkFrame):
         master: ctk.CTk | ctk.CTkFrame,
         transaction_service: TransactionService,
         category_service: CategoryService,
+        on_changed: Callable[[], None] | None = None,
     ) -> None:
         super().__init__(master)
         self._tx_service = transaction_service
         self._cat_service = category_service
+        self._on_changed = on_changed
         self._categories_by_name: dict[str, Category] = {}
         self._categories_by_id: dict[int, Category] = {}
         self._editing_id: int | None = None
@@ -281,6 +284,8 @@ class TransactionView(ctk.CTkFrame):
                 )
             self._reset_form()
             self.refresh_all()
+            if self._on_changed is not None:
+                self._on_changed()
         except ValueError as exc:
             self._status_label.configure(text=str(exc))
 
@@ -291,5 +296,7 @@ class TransactionView(ctk.CTkFrame):
                 self._reset_form()
             self._status_label.configure(text="")
             self.refresh_all()
+            if self._on_changed is not None:
+                self._on_changed()
         except ValueError as exc:
             self._status_label.configure(text=str(exc))

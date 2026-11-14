@@ -51,6 +51,10 @@ def test_empty_transactions_and_summary(temp_db_path: Path) -> None:
     assert tx_repo.db_path == temp_db_path
     assert service.list_transactions() == []
     assert service.get_summary() == {"income": 0, "expense": 0, "balance": 0}
+    assert service.get_available_months() == []
+    assert service.get_spending_by_category() == {}
+    assert service.get_monthly_income_vs_expense() == []
+    assert service.get_balance_over_time() == []
 
 
 def test_add_get_update_delete_transaction_and_summary(temp_db_path: Path) -> None:
@@ -148,3 +152,49 @@ def test_transaction_validation_errors(temp_db_path: Path) -> None:
     with patch.object(tx_repo, "update", return_value=None):
         with pytest.raises(ValueError, match="does not exist"):
             tx_service.update_transaction(tx.id, "2026-11-14", "30.00", "expense", None)
+
+
+def test_dashboard_chart_aggregations(temp_db_path: Path) -> None:
+    cat_repo = CategoryRepository(temp_db_path)
+    cat_service = CategoryService(cat_repo)
+    cats = {c.name: c.id for c in cat_service.list_categories()}
+
+    tx_service = TransactionService(TransactionRepository(temp_db_path), category_repo=cat_repo)
+
+    tx_service.add_transaction("2026-10-01", "4000.00", "income", cats["Salary"])
+    tx_service.add_transaction("2026-10-10", "1500.00", "expense", cats["Rent"])
+    tx_service.add_transaction("2026-10-15", "300.00", "expense", cats["Groceries"])
+    tx_service.add_transaction("2026-11-01", "4200.00", "income", cats["Salary"])
+    tx_service.add_transaction("2026-11-05", "400.00", "expense", cats["Groceries"])
+    tx_service.add_transaction("2026-11-08", "100.00", "expense", None)
+
+    assert tx_service.get_available_months() == ["2026-11", "2026-10"]
+
+    all_cat_spending = tx_service.get_spending_by_category()
+    assert all_cat_spending == {
+        "Rent": 150000,
+        "Groceries": 70000,
+        "Uncategorized": 10000,
+    }
+
+    nov_cat_spending = tx_service.get_spending_by_category(month="2026-11")
+    assert nov_cat_spending == {
+        "Groceries": 40000,
+        "Uncategorized": 10000,
+    }
+
+    monthly_series = tx_service.get_monthly_income_vs_expense()
+    assert monthly_series == [
+        {"month": "2026-10", "income": 400000, "expense": 180000},
+        {"month": "2026-11", "income": 420000, "expense": 50000},
+    ]
+
+    balance_series = tx_service.get_balance_over_time()
+    assert balance_series == [
+        ("2026-10-01", 400000),
+        ("2026-10-10", 250000),
+        ("2026-10-15", 220000),
+        ("2026-11-01", 640000),
+        ("2026-11-05", 600000),
+        ("2026-11-08", 590000),
+    ]

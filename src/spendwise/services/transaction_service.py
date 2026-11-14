@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import date as dt_date
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
@@ -150,3 +151,58 @@ class TransactionService:
             "expense": expense,
             "balance": income - expense,
         }
+
+    def get_available_months(self) -> list[str]:
+        months = {t.date[:7] for t in self._repo.list_all() if len(t.date) >= 7}
+        return sorted(months, reverse=True)
+
+    def get_spending_by_category(self, month: str | None = None) -> dict[str, int]:
+        cat_names: dict[int, str] = {}
+        if self._category_repo is not None:
+            cat_names = {c.id: c.name for c in self._category_repo.list_all() if c.id is not None}
+
+        totals: dict[str, int] = defaultdict(int)
+        for tx in self._repo.list_all():
+            if tx.type != "expense":
+                continue
+            if month is not None and not tx.date.startswith(month):
+                continue
+            name = (
+                cat_names.get(tx.category_id, "Uncategorized")
+                if tx.category_id is not None
+                else "Uncategorized"
+            )
+            totals[name] += tx.amount
+
+        return dict(sorted(totals.items(), key=lambda item: item[1], reverse=True))
+
+    def get_monthly_income_vs_expense(self) -> list[dict[str, str | int]]:
+        monthly: dict[str, dict[str, int]] = defaultdict(lambda: {"income": 0, "expense": 0})
+        for tx in self._repo.list_all():
+            month_key = tx.date[:7]
+            if tx.type == "income":
+                monthly[month_key]["income"] += tx.amount
+            else:
+                monthly[month_key]["expense"] += tx.amount
+
+        return [
+            {
+                "month": m,
+                "income": monthly[m]["income"],
+                "expense": monthly[m]["expense"],
+            }
+            for m in sorted(monthly.keys())
+        ]
+
+    def get_balance_over_time(self) -> list[tuple[str, int]]:
+        daily_net: dict[str, int] = defaultdict(int)
+        for tx in self._repo.list_all():
+            delta = tx.amount if tx.type == "income" else -tx.amount
+            daily_net[tx.date] += delta
+
+        running_balance = 0
+        series: list[tuple[str, int]] = []
+        for day in sorted(daily_net.keys()):
+            running_balance += daily_net[day]
+            series.append((day, running_balance))
+        return series
