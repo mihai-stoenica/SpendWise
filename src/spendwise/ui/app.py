@@ -6,6 +6,7 @@ from spendwise.repositories.category_repo import CategoryRepository
 from spendwise.repositories.transaction_repo import TransactionRepository
 from spendwise.services.category_service import CategoryService
 from spendwise.services.profile_service import ProfileService
+from spendwise.services.report_service import ReportService
 from spendwise.services.seed_service import seed_demo_transactions
 from spendwise.services.transaction_service import TransactionService
 from spendwise.ui.category_view import CategoryView
@@ -76,6 +77,7 @@ class SpendWiseApp(ctk.CTk):
             TransactionRepository(db_path),
             category_repo=category_repo,
         )
+        report_service = ReportService(transaction_service)
 
         tabs = ctk.CTkTabview(shell)
         tabs.grid(row=1, column=0, padx=16, pady=(4, 16), sticky="nsew")
@@ -98,6 +100,8 @@ class SpendWiseApp(ctk.CTk):
         dashboard_view = DashboardView(
             dashboard_tab,
             transaction_service=transaction_service,
+            report_service=report_service,
+            profile_name=profile.name,
         )
         dashboard_view.grid(row=0, column=0, sticky="nsew")
         self._dashboard_view = dashboard_view

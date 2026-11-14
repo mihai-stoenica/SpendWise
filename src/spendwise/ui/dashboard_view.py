@@ -1,7 +1,12 @@
+from datetime import date as dt_date
+from pathlib import Path
+from tkinter import filedialog
+
 import customtkinter as ctk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
+from spendwise.services.report_service import ReportService
 from spendwise.services.transaction_service import TransactionService
 
 
@@ -10,9 +15,13 @@ class DashboardView(ctk.CTkFrame):
         self,
         master: ctk.CTk | ctk.CTkFrame,
         transaction_service: TransactionService,
+        report_service: ReportService | None = None,
+        profile_name: str = "Default",
     ) -> None:
-        super().__init__(master)
+        super().__init__(master, fg_color="transparent")
         self._tx_service = transaction_service
+        self._report_service = report_service or ReportService(transaction_service)
+        self._profile_name = profile_name
         self._canvas: FigureCanvasTkAgg | None = None
 
         self._build_ui()
@@ -23,7 +32,8 @@ class DashboardView(ctk.CTkFrame):
         self.grid_rowconfigure(1, weight=1)
 
         toolbar = ctk.CTkFrame(self)
-        toolbar.grid(row=0, column=0, padx=16, pady=(12, 6), sticky="ew")
+        toolbar.grid(row=0, column=0, padx=16, pady=(12, 8), sticky="ew")
+        toolbar.grid_columnconfigure(4, weight=1)
 
         ctk.CTkLabel(
             toolbar,
@@ -45,12 +55,61 @@ class DashboardView(ctk.CTkFrame):
             text="Refresh Charts",
             width=120,
             command=self.refresh_charts,
-        ).grid(row=0, column=2, padx=12, pady=10, sticky="w")
+        ).grid(row=0, column=2, padx=8, pady=10, sticky="w")
 
-        self._chart_container = ctk.CTkFrame(self)
-        self._chart_container.grid(row=1, column=0, padx=16, pady=(4, 12), sticky="nsew")
+        ctk.CTkButton(
+            toolbar,
+            text="Export Monthly PDF",
+            width=155,
+            command=self._handle_export_pdf,
+        ).grid(row=0, column=3, padx=8, pady=10, sticky="w")
+
+        self._status_label = ctk.CTkLabel(
+            toolbar,
+            text="",
+            font=ctk.CTkFont(size=12),
+        )
+        self._status_label.grid(row=0, column=4, padx=12, pady=10, sticky="w")
+
+        self._chart_container = ctk.CTkFrame(self, fg_color="transparent")
+        self._chart_container.grid(row=1, column=0, padx=16, pady=(0, 12), sticky="nsew")
         self._chart_container.grid_rowconfigure(0, weight=1)
         self._chart_container.grid_columnconfigure(0, weight=1)
+
+    def _resolve_report_month(self) -> str:
+        selected = self._month_menu.get()
+        if selected != "All Months":
+            return selected
+        available = self._tx_service.get_available_months()
+        if available:
+            return available[0]
+        return dt_date.today().strftime("%Y-%m")
+
+    def _handle_export_pdf(self) -> None:
+        report_month = self._resolve_report_month()
+        default_filename = f"SpendWise_Report_{self._profile_name}_{report_month}.pdf"
+        chosen_path = filedialog.asksaveasfilename(
+            parent=self.winfo_toplevel(),
+            title=f"Save Monthly PDF Report ({report_month})",
+            defaultextension=".pdf",
+            initialfile=default_filename,
+            filetypes=[("PDF files", "*.pdf")],
+        )
+        if not chosen_path:
+            return
+
+        try:
+            saved = self._report_service.generate_monthly_pdf(
+                month=report_month,
+                output_path=Path(chosen_path),
+                profile_name=self._profile_name,
+            )
+            self._status_label.configure(
+                text=f"Saved PDF: {saved.name}",
+                text_color="#2ecc71",
+            )
+        except (ValueError, OSError) as exc:
+            self._status_label.configure(text=str(exc), text_color="tomato")
 
     def refresh_charts(self) -> None:
         months = self._tx_service.get_available_months()
@@ -214,5 +273,7 @@ class DashboardView(ctk.CTkFrame):
 
         canvas = FigureCanvasTkAgg(fig, master=self._chart_container)
         canvas.draw()
-        canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
+        tk_widget = canvas.get_tk_widget()
+        tk_widget.configure(bg=fig_bg, highlightthickness=0, bd=0)
+        tk_widget.grid(row=0, column=0, sticky="nsew")
         self._canvas = canvas

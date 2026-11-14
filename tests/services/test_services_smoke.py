@@ -13,12 +13,13 @@ from spendwise.services.transaction_service import TransactionService
 
 
 def test_service_classes_instantiate(temp_db_path: Path) -> None:
+    tx_service = TransactionService(TransactionRepository(temp_db_path))
     assert ProfileService() is not None
     assert CategoryService(CategoryRepository(temp_db_path)) is not None
-    assert TransactionService(TransactionRepository(temp_db_path)) is not None
+    assert tx_service is not None
     assert BudgetService() is not None
     assert AlertService() is not None
     assert ForecastService() is not None
     assert ExportService() is not None
-    assert ReportService() is not None
+    assert ReportService(tx_service) is not None
     assert "Groceries" in DEFAULT_CATEGORIES
