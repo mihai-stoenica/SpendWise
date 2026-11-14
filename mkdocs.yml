@@ -1,0 +1,4 @@
+site_name: SpendWise Documentation
+docs_dir: docs
+nav:
+  - Home: index.md
